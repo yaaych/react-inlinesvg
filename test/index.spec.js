@@ -87,7 +87,7 @@ describe('react-inlinesvg', () => {
 
   it('should load an svg', done => {
     setup({
-      src: '/test/tiger.svg',
+      src: 'http://localhost:1337/test/tiger.svg',
       onError: done,
       onLoad: () => {
         done();
@@ -117,7 +117,7 @@ describe('react-inlinesvg', () => {
 
   it('should call onError for a 404', done => {
     setup({
-      src: 'DOESNOTEXIST.svg',
+      src: 'http://localhost:1337/DOESNOTEXIST.svg',
       onError: () => done()
     });
   });
@@ -135,7 +135,7 @@ describe('react-inlinesvg', () => {
   context('with errors', () => {
     it('should show children if loading not supported', () => {
       const props = {
-        src: 'DOESNOTEXIST.svg',
+        src: 'http://localhost:1337/DOESNOTEXIST.svg',
         children: [React.DOM.span({ key: 1 }, ''), React.DOM.span({ key: 2 }, 'MISSINGNO')],
         supportTest: () => false
       };
@@ -146,8 +146,8 @@ describe('react-inlinesvg', () => {
 
     it('should show a single children if loading not supported', () => {
       const props = {
-        src: 'DOESNOTEXIST.svg',
-        children: React.DOM.img({ src: '/test/tiger.png' }),
+        src: 'http://localhost:1337/DOESNOTEXIST.svg',
+        children: React.DOM.img({ src: 'http://localhost:1337/test/tiger.png' }),
         supportTest: () => false
       };
 
@@ -155,12 +155,12 @@ describe('react-inlinesvg', () => {
       const img = wrapper.find('img');
 
       expect(img.length).toBe(1);
-      expect(img.props().src).toBe('/test/tiger.png');
+      expect(img.props().src).toBe('http://localhost:1337/test/tiger.png');
     });
 
     it('should NOT show children on error', () => {
       const props = {
-        src: 'DOESNOTEXIST.svg',
+        src: 'http://localhost:1337/DOESNOTEXIST.svg',
         children: [React.DOM.span({ key: 1 }, ''), React.DOM.span({ key: 2 }, 'MISSINGNO')]
       };
 
@@ -172,7 +172,7 @@ describe('react-inlinesvg', () => {
 
     it('should have a status code HTTP errors', done => {
       const props = {
-        src: 'DOESNOTEXIST.svg',
+        src: 'http://localhost:1337/DOESNOTEXIST.svg',
         onError: err => {
           if (err.isHttpError && err.status === 404) {
             return done();

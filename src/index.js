@@ -1,11 +1,8 @@
 import React from 'react';
 import once from 'once';
-import httpplease from 'httpplease';
-import ieXDomain from 'httpplease/plugins/oldiexdomain';
+import request from 'request';
 
 import { shouldComponentUpdate } from './shouldComponentUpdate';
-
-const http = httpplease.use(ieXDomain);
 
 const Status = {
   PENDING: 'pending',
@@ -28,10 +25,10 @@ const createGetOrUseCacheForUrl = (url, callback) => {
   if (!getRequestsByUrl[url]) {
     getRequestsByUrl[url] = [];
 
-    http.get(url, (err, res) => {
+    request(url, (err, res, body) => {
       getRequestsByUrl[url].forEach(cb => {
-        loadedIcons[url] = [err, res];
-        cb(err, res);
+        loadedIcons[url] = [err, body];
+        cb(err, body);
       });
     });
   }
@@ -210,15 +207,18 @@ export default class InlineSVG extends React.Component {
     }
   }
 
-  handleLoad(err, res) {
-    if (err) {
-      this.fail(err);
+  handleLoad(err, res, body) {
+    if (err || (res.statusCode && res.statusCode != 200)) {
+      this.fail(createError('Could not find file.', {
+        isHttpError: true,
+        status: res.statusCode,
+      }));
       return;
     }
 
     if (this.isActive) {
       this.setState({
-        loadedText: res.text,
+        loadedText: body,
         status: Status.LOADED
       }, () => (typeof this.props.onLoad === 'function' ? this.props.onLoad() : null));
     }
@@ -246,7 +246,7 @@ export default class InlineSVG extends React.Component {
       );
     }
 
-    return http.get(this.props.src, this.handleLoad);
+    return request(this.props.src, this.handleLoad);
   }
 
   getClassName() {

@@ -19,9 +19,9 @@
   },
   "main": "./lib/index.js",
   "dependencies": {
-    "httpplease": "^0.16",
+    "fbjs": "^0.8",
     "once": "^1.4",
-    "fbjs": "^0.8"
+    "request": "^2.79.0"
   },
   "devDependencies": {
     "babel-core": "^6.17",
