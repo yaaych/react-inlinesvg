@@ -1,11 +1,19 @@
 import React from 'react';
 import once from 'once';
-import httpplease from 'httpplease';
-import ieXDomain from 'httpplease/plugins/oldiexdomain';
 
 import { shouldComponentUpdate } from './shouldComponentUpdate';
 
-const http = httpplease.use(ieXDomain);
+const CLIENT_SIDE = !!(typeof window != 'undefined' && window.document);
+
+var httpplease;
+var ieXDomain;
+var http;
+
+if (CLIENT_SIDE) {
+  httpplease = require('httpplease');
+  ieXDomain = require('httpplease/plugins/oldiexdomain');
+  http = httpplease.use(ieXDomain);
+}
 
 const Status = {
   PENDING: 'pending',
@@ -25,7 +33,7 @@ const createGetOrUseCacheForUrl = (url, callback) => {
     setTimeout(() => callback(params[0], params[1]), 0);
   }
 
-  if (!getRequestsByUrl[url]) {
+  if (!getRequestsByUrl[url] && CLIENT_SIDE) {
     getRequestsByUrl[url] = [];
 
     http.get(url, (err, res) => {
@@ -246,7 +254,9 @@ export default class InlineSVG extends React.Component {
       );
     }
 
-    return http.get(this.props.src, this.handleLoad);
+    if (CLIENT_SIDE) {
+      return http.get(this.props.src, this.handleLoad);
+    }
   }
 
   getClassName() {

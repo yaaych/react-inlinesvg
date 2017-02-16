@@ -723,8 +723,15 @@ module.exports = {
 };
 
 },{"../lib/utils/once":12,"urllite/lib/core":44}],16:[function(require,module,exports){
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
 'use strict';
 /* eslint-disable no-unused-vars */
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 var propIsEnumerable = Object.prototype.propertyIsEnumerable;
 
@@ -745,7 +752,7 @@ function shouldUseNative() {
 		// Detect buggy property enumeration order in older V8 versions.
 
 		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
-		var test1 = new String('abc');  // eslint-disable-line
+		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
 		test1[5] = 'de';
 		if (Object.getOwnPropertyNames(test1)[0] === '5') {
 			return false;
@@ -774,7 +781,7 @@ function shouldUseNative() {
 		}
 
 		return true;
-	} catch (e) {
+	} catch (err) {
 		// We don't expect any of the above to throw, but better to be safe.
 		return false;
 	}
@@ -794,8 +801,8 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 			}
 		}
 
-		if (Object.getOwnPropertySymbols) {
-			symbols = Object.getOwnPropertySymbols(from);
+		if (getOwnPropertySymbols) {
+			symbols = getOwnPropertySymbols(from);
 			for (var i = 0; i < symbols.length; i++) {
 				if (propIsEnumerable.call(from, symbols[i])) {
 					to[symbols[i]] = from[symbols[i]];
@@ -1161,17 +1168,6 @@ var fourArgumentPooler = function (a1, a2, a3, a4) {
   }
 };
 
-var fiveArgumentPooler = function (a1, a2, a3, a4, a5) {
-  var Klass = this;
-  if (Klass.instancePool.length) {
-    var instance = Klass.instancePool.pop();
-    Klass.call(instance, a1, a2, a3, a4, a5);
-    return instance;
-  } else {
-    return new Klass(a1, a2, a3, a4, a5);
-  }
-};
-
 var standardReleaser = function (instance) {
   var Klass = this;
   !(instance instanceof Klass) ? "production" !== 'production' ? invariant(false, 'Trying to release an instance into a pool of a different type.') : _prodInvariant('25') : void 0;
@@ -1211,8 +1207,7 @@ var PooledClass = {
   oneArgumentPooler: oneArgumentPooler,
   twoArgumentPooler: twoArgumentPooler,
   threeArgumentPooler: threeArgumentPooler,
-  fourArgumentPooler: fourArgumentPooler,
-  fiveArgumentPooler: fiveArgumentPooler
+  fourArgumentPooler: fourArgumentPooler
 };
 
 module.exports = PooledClass;
@@ -3392,7 +3387,14 @@ var ReactElementValidator = {
     // We warn in this case but don't throw. We expect the element creation to
     // succeed and there will likely be errors in render.
     if (!validType) {
-      "production" !== 'production' ? warning(false, 'React.createElement: type should not be null, undefined, boolean, or ' + 'number. It should be a string (for DOM elements) or a ReactClass ' + '(for composite components).%s', getDeclarationErrorAddendum()) : void 0;
+      if (typeof type !== 'function' && typeof type !== 'string') {
+        var info = '';
+        if (type === undefined || typeof type === 'object' && type !== null && Object.keys(type).length === 0) {
+          info += ' You likely forgot to export your component from the file ' + 'it\'s defined in.';
+        }
+        info += getDeclarationErrorAddendum();
+        "production" !== 'production' ? warning(false, 'React.createElement: type is invalid -- expected a string (for ' + 'built-in components) or a class/function (for composite ' + 'components) but got: %s.%s', type == null ? type : typeof type, info) : void 0;
+      }
     }
 
     var element = ReactElement.createElement.apply(this, arguments);
@@ -4081,7 +4083,7 @@ module.exports = ReactPureComponent;
 
 'use strict';
 
-module.exports = '15.4.1';
+module.exports = '15.4.2';
 },{}],37:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -4634,14 +4636,6 @@ var _once = require('once');
 
 var _once2 = _interopRequireDefault(_once);
 
-var _httpplease = require('httpplease');
-
-var _httpplease2 = _interopRequireDefault(_httpplease);
-
-var _oldiexdomain = require('httpplease/plugins/oldiexdomain');
-
-var _oldiexdomain2 = _interopRequireDefault(_oldiexdomain);
-
 var _shouldComponentUpdate = require('./shouldComponentUpdate');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -4652,7 +4646,17 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var http = _httpplease2.default.use(_oldiexdomain2.default);
+var CLIENT_SIDE = !!(typeof window != 'undefined' && window.document);
+
+var httpplease;
+var ieXDomain;
+var http;
+
+if (CLIENT_SIDE) {
+  httpplease = require('httpplease');
+  ieXDomain = require('httpplease/plugins/oldiexdomain');
+  http = httpplease.use(ieXDomain);
+}
 
 var Status = {
   PENDING: 'pending',
@@ -4667,16 +4671,14 @@ var loadedIcons = {};
 
 var createGetOrUseCacheForUrl = function createGetOrUseCacheForUrl(url, callback) {
   if (loadedIcons[url]) {
-    (function () {
-      var params = loadedIcons[url];
+    var params = loadedIcons[url];
 
-      setTimeout(function () {
-        return callback(params[0], params[1]);
-      }, 0);
-    })();
+    setTimeout(function () {
+      return callback(params[0], params[1]);
+    }, 0);
   }
 
-  if (!getRequestsByUrl[url]) {
+  if (!getRequestsByUrl[url] && CLIENT_SIDE) {
     getRequestsByUrl[url] = [];
 
     http.get(url, function (err, res) {
@@ -4753,7 +4755,7 @@ var InlineSVGError = function (_Error) {
   _inherits(InlineSVGError, _Error);
 
   function InlineSVGError(message) {
-    var _ret2;
+    var _ret;
 
     _classCallCheck(this, InlineSVGError);
 
@@ -4765,7 +4767,7 @@ var InlineSVGError = function (_Error) {
     _this.isUnsupportedBrowserError = false;
     _this.message = message;
 
-    return _ret2 = _this, _possibleConstructorReturn(_this, _ret2);
+    return _ret = _this, _possibleConstructorReturn(_this, _ret);
   }
 
   return InlineSVGError;
@@ -4901,7 +4903,9 @@ var InlineSVG = function (_React$Component) {
         return createGetOrUseCacheForUrl(this.props.src, this.handleLoad);
       }
 
-      return http.get(this.props.src, this.handleLoad);
+      if (CLIENT_SIDE) {
+        return http.get(this.props.src, this.handleLoad);
+      }
     }
   }, {
     key: 'getClassName',
